@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/start.png</file>
+        <file>icons/settings.png</file>
+        <file>icons/eventlog.png</file>
+        <file>icons/wingslot_icon.png</file>
+    </qresource>
+</RCC>
