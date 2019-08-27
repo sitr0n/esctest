@@ -13,13 +13,15 @@ public:
     ~QDynamicBar() = default;
     void glideTo(int value, int timeSpan);
     void setValue(int value);
+    void pause();
+    void resume();
 
 private:
-    int originalValue;
-    int targetValue;
-    int duration;
-    QTimer ticker;
-    QTime stopwatch;
+    int m_originalValue;
+    int m_targetValue;
+    int m_duration;
+    QTimer m_ticker;
+    QTime m_stopwatch;
 };
 
 #endif // QDYNAMICBAR_H

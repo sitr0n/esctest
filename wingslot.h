@@ -3,79 +3,100 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QTime>
 #include "ebird.hh"
 #include "smartcageif.h"
 #include <vector>
+#include <functional>
 #include <memory>
-
 
 class WingSlot : public QObject
 {
     Q_OBJECT
 public:
-    explicit WingSlot(int serial, eBird::Birdcom_var &svr, QObject *parent = nullptr);
-    int id() const;
-    QString firmwareVersion() const;
-    double packetLoss() const;
-    bool setCharge(bool enable);
-    bool getData(SmartCageData1 &data);
-    void connectWing();
+    struct WingData {
+        bool dataPresent = false;
+        int serial;
+        float humidity;
+        float temperature;
+        float batCapacity;
+        float batVolt;
+        float batCurrent;
+        float iReturn;
+        float vReturn;
+        float loss;
+        float LQI;
+    };
 
-    static std::vector<std::unique_ptr<WingSlot>> findDevices(int bus, eBird::Birdcom_var &svr);
-    static bool connected(eBird::Birdcom_var &svr);
+    struct Stats {
+        QString firmware;
+        double iSupply;
+        double iSupplyWing;
+        double loss;
+        double LQI;
+        double temperature;
+        unsigned long dataAge;
+        WingData wing;
+    };
+    typedef std::reference_wrapper<WingSlot> Unit;
+    typedef std::vector<Unit> SlotList;
+    static bool findCommunicationServer(int argc, char **argv);
+    static void setProcessingLoad(const double loadFactor);
+    static SlotList discoverUnits(int bus);
+    static void tuneSampling(const double &loadFactor);
+    static SlotList sort(SlotList &list);
+
+    int id() const;
+    const Stats& stats() const;
+    bool isPaired() const;
+    void pair();
+    bool setAutoPair(bool enable);
+    bool setCharge(bool enable);
+    bool isCharging() const;
+    bool setSampling(int interval);
+    int sampling() const;
 
 signals:
-    void error(const QString);
+    void new_data(const Stats& stats);
+    void error(const QString &message);
+
+protected:
+    WingSlot(int id, int bus);
+    static std::vector<Unit> getReferences();
+    template <template <typename, typename> class Container, typename Value, typename Allocator = std::allocator<Value>>
+    static auto getReferences(const Container<Value, Allocator> &container) -> Container<std::reference_wrapper<typename Value::element_type>, Allocator>;
+    static bool getFirmware(int id, int bus, QString &firmware);
+    static void removeOldUnits();
+
+    bool isOutdated() const;
+    int inactivityDuration() const;
+    void registerActivity(const bool presence);
+    void setFirmware(const QString &firmware);
+    bool getData(SmartCageData1 &data);
+    bool setWingSampling(float interval);
+    bool startPairing();
+    bool processResponse(bool ok);
 
 private:
-    int serialnumber;
-    unsigned char firmware[62];
-    int packages_sent;
-    int packages_lost;
+    int m_id;
+    int m_bus;
+    QTimer m_ticker;
+    QTime m_pairingWatch;
+    bool m_pairing;
+    bool m_charging;
+    Stats m_data;
+    QTime m_inactivityWatch;
+    QTime m_freezeWatch;
 
-    bool GetFirmwareVersion();
-    bool SetWingComInterval(float interval = 0.1);
-    bool SetWingAutoAssociation(bool bOn);
-    bool AssociateWing();
-    bool measurePowerUsage();
-    eBird::Birdcom_var &svr_;
+    static double s_loadFactor;
+    static eBird::Birdcom_var s_esvr;
+    static std::vector<std::unique_ptr<WingSlot>> s_slots;
 
-    const float WINGCOM_SAMPLE_RATE = 0.1;
-    static constexpr double MAX_SCAN_DELAY = 1;
-
-    struct {
-        float iSupply;
-        float iSupplyWing;
-        float iReturnWing;
-        float vReturnWing;
-
-        float SlotLossAVERAGE;
-        float SlotLossMAX;
-        float SlotLossMIN;
-
-        float WingLossAVERAGE;
-        float WingLossMAX;
-        float WingLossMIN;
-
-        float SlotLqiAVERAGE;
-        float SlotLqiMAX;
-        float SlotLqiMIN;
-
-        float WingLqiAVERAGE;
-        float WingLqiMAX;
-        float WingLqiMIN;
-
-        float WingBatCurrent;
-    } results;
-
-    struct {
-        float SlotTemperature;
-        unsigned long WingSerial;
-        float WingBatCapacity;
-        float WingBatVolt;
-        float WingHumidity;
-        float WingTemperature;
-    } data;
+    static const int WINGDATA_PER_SAMPLE = 10;          // [UNUSED]
+    static const int PAIRING_TIMEOUT = 11000;           // [Milliseconds]
+    static const int ACTIVITY_TIMEOUT = 500;            // [Milliseconds]
+    static constexpr double WING_COM_INTERVAL = 0.1;    // [Seconds]
+    static constexpr double MAX_SCAN_DELAY = 1.0;       // [Seconds]
 };
 
 #endif // WINGSLOT_H

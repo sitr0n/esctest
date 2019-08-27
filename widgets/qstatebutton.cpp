@@ -43,11 +43,11 @@ void QStateButton::mousePressEvent(QMouseEvent *e)
     Q_UNUSED(e)
     if (!states.empty()) {
         emit state_change(states.at(currentState));
+        if (++currentState >= states.size()) {
+            currentState = 0;
+        }
+        updateButton();
     }
-    if (++currentState >= states.size()) {
-        currentState = 0;
-    }
-    updateButton();
 }
 
 void QStateButton::updateButton()

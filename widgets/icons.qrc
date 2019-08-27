@@ -4,5 +4,6 @@
         <file>icons/settings.png</file>
         <file>icons/eventlog.png</file>
         <file>icons/wingslot_icon.png</file>
+        <file>icons/wing.png</file>
     </qresource>
 </RCC>

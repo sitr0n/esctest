@@ -24,7 +24,7 @@ private slots:
     void mousePressEvent(QMouseEvent *e);
 
 private:
-    int currentState;
+    uint currentState;
     std::vector<QString> states;
     std::map<QString, std::unique_ptr<QIcon>> icons;
 
